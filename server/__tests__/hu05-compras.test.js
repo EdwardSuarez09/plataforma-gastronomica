@@ -18,6 +18,14 @@ describe('HU-05 reglas (unitarias)', () => {
   ])('CA-2: rechaza %o', (cambio, mensaje) =>
     expect(validarCompra({ ...compra, ...cambio })).toMatch(mensaje))
 
+  test.each([
+    [{ cantidad: '10' }, /cantidad/],
+    [{ cantidad: Infinity }, /cantidad/],
+    [{ valorTotal: '32000' }, /valor/],
+    [{ valorTotal: NaN }, /valor/],
+  ])('CA-2: rechaza valores que no son números finitos %o', (cambio, mensaje) =>
+    expect(validarCompra({ ...compra, ...cambio })).toMatch(mensaje))
+
   test('CA-1: acepta una compra válida', () => expect(validarCompra(compra)).toBeNull())
 })
 
