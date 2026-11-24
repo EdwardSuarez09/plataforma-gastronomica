@@ -1,4 +1,5 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
+import { Link } from 'react-router-dom'
 import { Aviso, Campo, Encabezado, dinero } from '../../components/ui.jsx'
 import { pedir } from '../../services/apiClient.js'
 
@@ -26,10 +27,40 @@ function Plan({ productos, plan }) {
   )
 }
 
+function ListaCompras({ compras }) {
+  if (compras.length === 0) return <p className="vacio">Con lo que hay en inventario alcanza para el plan.</p>
+  const total = compras.reduce((suma, c) => suma + c.costo, 0)
+  return (
+    <>
+      <p className="cifra">Necesitas comprar <strong>{dinero(total)}</strong> en insumos.</p>
+      <div className="tabla">
+        <table>
+          <thead><tr><th>Insumo</th><th>Necesario</th><th>Hay</th><th>Comprar</th><th>Costo</th><th /></tr></thead>
+          <tbody>
+            {compras.map((c) => (
+              <tr key={c.insumoId}>
+                <td>{c.nombre}</td><td>{c.necesario} {c.unidad}</td><td>{c.stock}</td>
+                <td><strong>{c.comprar} {c.unidad}</strong></td><td>{dinero(c.costo)}</td>
+                <td><Link to={`/compras?insumo=${c.insumoId}&cantidad=${c.comprar}`} aria-label={`Comprar ${c.nombre}`}>Comprar</Link></td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    </>
+  )
+}
+
 function Optimizacion() {
-  const [form, setForm] = useState({ presupuesto: '300000', factorMin: '50', factorMax: '120', variacion: '10' })
+  const [form, setForm] = useState({ presupuesto: '300000', factorMin: '50', factorMax: '120', variacion: '10', soloStock: false })
   const [resultado, setResultado] = useState(null)
   const [error, setError] = useState('')
+  useEffect(() => {
+    pedir('/produccion/sugerencia')
+      .then((s) => s?.presupuesto && setForm((f) => ({ ...f, presupuesto: String(s.presupuesto) })))
+      .catch((err) => setError(err.message))
+  }, [])
+
   const campo = (nombre, etiqueta) => (
     <Campo
       etiqueta={etiqueta} type="number" value={form[nombre]}
@@ -42,7 +73,7 @@ function Optimizacion() {
     try {
       const datos = {
         presupuesto: Number(form.presupuesto), factorMin: form.factorMin / 100,
-        factorMax: form.factorMax / 100, variacion: form.variacion / 100,
+        factorMax: form.factorMax / 100, variacion: form.variacion / 100, soloStock: form.soloStock,
       }
       setResultado(await pedir('/produccion/optimizar', { metodo: 'POST', datos }))
       setError('')
@@ -63,6 +94,10 @@ function Optimizacion() {
         {campo('factorMin', 'Mínimo a producir (% del pronóstico)')}
         {campo('factorMax', 'Máximo a producir (% del pronóstico)')}
         {campo('variacion', 'Variación de costos (%)')}
+        <label className="fila" style={{ justifyContent: 'start' }}>
+          <input type="checkbox" style={{ width: 'auto' }} checked={form.soloStock} onChange={(e) => setForm({ ...form, soloStock: e.target.checked })} />
+          Producir solo con lo que tengo
+        </label>
         <button>Calcular plan</button>
       </form>
       <Aviso>{error}</Aviso>
@@ -71,10 +106,13 @@ function Optimizacion() {
       ))}
       {resultado && (
         <>
+          {resultado.excluidos?.length > 0 && <Aviso>{`Fuera del plan por no tener rendimiento: ${resultado.excluidos.join(', ')}`}</Aviso>}
           <p className="cifra">
             Ganancia semanal estimada: <strong>{dinero(resultado.plan.ganancia)}</strong> · Inversión: <strong>{dinero(resultado.plan.costo)}</strong>
           </p>
           <Plan productos={resultado.productos} plan={resultado.plan} />
+          <h2>Qué comprar para cumplirlo</h2>
+          <ListaCompras compras={resultado.compras ?? []} />
           <h2>Si cambian los costos</h2>
           <div className="rejilla">
             {resultado.escenarios.map((e) => (
