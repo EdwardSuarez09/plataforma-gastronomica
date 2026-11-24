@@ -4,7 +4,7 @@ import { crear, editar, eliminar } from '../../services/apiClient.js'
 import { useDatos } from '../../services/useDatos.js'
 
 const UNIDADES = ['kg', 'g', 'lb', 'L', 'ml', 'unidad'].map((u) => [u, u])
-const VACIO = { nombre: '', unidad: 'kg', precio: '', stock: '' }
+const VACIO = { nombre: '', unidad: 'kg', precio: '', stock: '', stockMinimo: '' }
 
 export const filtrarPorNombre = (lista, texto) =>
   lista.filter((i) => i.nombre.toLowerCase().includes(texto.trim().toLowerCase()))
@@ -30,7 +30,9 @@ function Insumos() {
 
   const guardar = async (e) => {
     e.preventDefault()
-    const insumo = { nombre: form.nombre, unidad: form.unidad, precio: Number(form.precio), stock: Number(form.stock || 0) }
+    const { nombre, unidad } = form
+    const insumo = { nombre, unidad, precio: Number(form.precio), stockMinimo: Number(form.stockMinimo || 0) }
+    if (!form.id) insumo.stock = Number(form.stock || 0)
     const ok = await intentar(() => (form.id ? editar('insumos', form.id, insumo) : crear('insumos', insumo)))
     if (ok) setForm(VACIO)
   }
@@ -40,13 +42,14 @@ function Insumos() {
 
   return (
     <>
-      <Encabezado titulo="Insumos">Unidad, precio y stock de lo que usas para producir.</Encabezado>
+      <Encabezado titulo="Insumos">Lo que usas para producir. El stock cambia con compras, ventas y ajustes.</Encabezado>
       <Aviso>{error || fallo}</Aviso>
       <form className="tarjeta formulario" onSubmit={guardar} noValidate>
         <Campo etiqueta="Nombre" value={form.nombre} onChange={cambiar('nombre')} />
         <Seleccion etiqueta="Unidad" opciones={UNIDADES} value={form.unidad} onChange={cambiar('unidad')} />
         <Campo etiqueta="Precio por unidad" type="number" value={form.precio} onChange={cambiar('precio')} />
-        <Campo etiqueta="Stock" type="number" value={form.stock} onChange={cambiar('stock')} />
+        {!form.id && <Campo etiqueta="Stock inicial" type="number" value={form.stock} onChange={cambiar('stock')} />}
+        <Campo etiqueta="Avisar cuando baje de" type="number" value={form.stockMinimo} onChange={cambiar('stockMinimo')} />
         <button>{form.id ? 'Guardar cambios' : 'Agregar insumo'}</button>
         {form.id && <button type="button" className="secundario" onClick={() => setForm(VACIO)}>Cancelar</button>}
       </form>
