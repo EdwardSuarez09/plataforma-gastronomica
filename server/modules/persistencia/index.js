@@ -3,9 +3,9 @@ import { requiereNegocio } from '../../middleware/auth.js'
 import { exigir } from '../../middleware/errores.js'
 import * as repo from './repo.js'
 
-const COLECCIONES = ['insumos', 'masas', 'productos', 'compras', 'ventas', 'pedidos']
-// Compras, ventas y pedidos tienen reglas propias: la API genérica solo los lee.
-const SOLO_LECTURA = ['compras', 'ventas', 'pedidos']
+const COLECCIONES = ['insumos', 'masas', 'productos', 'compras', 'ventas', 'pedidos', 'movimientos']
+// Estas colecciones tienen reglas propias: la API genérica solo los lee.
+const SOLO_LECTURA = ['compras', 'ventas', 'pedidos', 'movimientos']
 
 const router = Router()
 

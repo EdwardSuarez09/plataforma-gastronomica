@@ -32,7 +32,7 @@ describe('HU-03 Insumos (funcionales)', () => {
     await userEvent.type(screen.getByLabelText('Nombre'), 'Sal')
     await userEvent.type(screen.getByLabelText('Precio por unidad'), '2000')
     await userEvent.click(screen.getByRole('button', { name: 'Agregar insumo' }))
-    expect(crear).toHaveBeenCalledWith('insumos', { nombre: 'Sal', unidad: 'kg', precio: 2000, stock: 0 })
+    expect(crear).toHaveBeenCalledWith('insumos', { nombre: 'Sal', unidad: 'kg', precio: 2000, stockMinimo: 0, stock: 0 })
   })
 
   test('CA-2 y CA-3: muestra el error que devuelve la validación', async () => {

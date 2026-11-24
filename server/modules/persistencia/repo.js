@@ -1,85 +1,130 @@
+import { AsyncLocalStorage } from 'node:async_hooks'
 import { randomUUID } from 'node:crypto'
-import { copyFile, mkdir, readFile, writeFile } from 'node:fs/promises'
-import { dirname, join } from 'node:path'
+import { copyFileSync, mkdirSync } from 'node:fs'
+import { join } from 'node:path'
+import { DatabaseSync } from 'node:sqlite'
 import { ErrorApi } from '../../middleware/errores.js'
 
-// Carpeta global para usuarios y negocios; una carpeta por negocio para lo demás.
-const base = () => process.env.DATA_DIR || join(import.meta.dirname, '../../data')
-const rutaDe = (ambito, coleccion) =>
-  ambito === 'global'
-    ? join(base(), 'global', `${coleccion}.json`)
-    : join(base(), 'negocios', ambito, `${coleccion}.json`)
+// Única capa que conoce la base de datos. Antes eran archivos JSON (HU-14); al migrar a
+// SQLite no cambió ningún otro módulo, porque todos usan estas mismas funciones.
+const ESQUEMA = `
+  PRAGMA journal_mode = WAL;
+  CREATE TABLE IF NOT EXISTS registros (
+    ambito    TEXT NOT NULL, -- 'global' o el id del negocio
+    coleccion TEXT NOT NULL,
+    id        TEXT NOT NULL,
+    datos     TEXT NOT NULL CHECK (json_valid(datos)),
+    PRIMARY KEY (ambito, coleccion, id)
+  );`
 
-const colas = new Map()
+const carpeta = () => process.env.DATA_DIR || join(import.meta.dirname, '../../data')
+export const archivo = () => join(carpeta(), 'sazon.db')
 
-async function leerArchivo(ruta) {
-  let texto
+let conexion
+function bd() {
+  if (conexion) return conexion
+  mkdirSync(carpeta(), { recursive: true })
+  const nueva = new DatabaseSync(archivo())
   try {
-    texto = await readFile(ruta, 'utf8')
-  } catch (e) {
-    if (e.code === 'ENOENT') return []
-    throw e
-  }
-  try {
-    return JSON.parse(texto)
+    nueva.exec(ESQUEMA)
   } catch {
-    await copyFile(ruta, `${ruta}.bak`)
-    throw new ErrorApi(503, 'El archivo de datos está dañado. Se guardó una copia .bak')
+    nueva.close()
+    copyFileSync(archivo(), `${archivo()}.bak`)
+    throw new ErrorApi(503, 'La base de datos está dañada. Se guardó una copia .bak')
   }
+  conexion = nueva
+  return conexion
 }
 
-// Las operaciones sobre un mismo archivo se ejecutan una detrás de otra.
-function enCola(ruta, tarea) {
-  const turno = (colas.get(ruta) ?? Promise.resolve()).then(tarea)
-  colas.set(ruta, turno.catch(() => {}))
+export function cerrar() {
+  conexion?.close()
+  conexion = undefined
+}
+
+// Las operaciones van en fila; lo que ocurre dentro de una transacción usa el mismo turno.
+const enTurno = new AsyncLocalStorage()
+let fila = Promise.resolve()
+
+function esperarTurno(tarea) {
+  if (enTurno.getStore()) return Promise.resolve().then(tarea)
+  const turno = fila.then(() => enTurno.run(true, tarea))
+  fila = turno.catch(() => {})
   return turno
 }
 
-export function listar(ambito, coleccion) {
-  const ruta = rutaDe(ambito, coleccion)
-  return enCola(ruta, () => leerArchivo(ruta))
-}
-
-// Lee, deja que `cambio` modifique la lista y guarda, todo en un solo turno de la cola.
-export function transformar(ambito, coleccion, cambio) {
-  const ruta = rutaDe(ambito, coleccion)
-  return enCola(ruta, async () => {
-    const lista = await leerArchivo(ruta)
-    const resultado = await cambio(lista)
-    await mkdir(dirname(ruta), { recursive: true })
-    await writeFile(ruta, JSON.stringify(lista, null, 2))
-    return resultado
+// Todo o nada: si la tarea falla, se deshacen todos sus cambios.
+export function transaccion(tarea) {
+  if (enTurno.getStore()) return Promise.resolve().then(tarea)
+  return esperarTurno(async () => {
+    bd().exec('BEGIN IMMEDIATE')
+    try {
+      const resultado = await tarea()
+      bd().exec('COMMIT')
+      return resultado
+    } catch (e) {
+      bd().exec('ROLLBACK')
+      throw e
+    }
   })
 }
 
-export async function obtener(ambito, coleccion, id) {
-  const registro = (await listar(ambito, coleccion)).find((r) => r.id === id)
-  if (!registro) throw new ErrorApi(404, 'Registro no encontrado')
-  return registro
+const leer = (ambito, coleccion) =>
+  bd().prepare('SELECT datos FROM registros WHERE ambito = ? AND coleccion = ? ORDER BY rowid')
+    .all(ambito, coleccion).map((f) => JSON.parse(f.datos))
+
+const guardar = (ambito, coleccion, registro) =>
+  bd().prepare(`INSERT INTO registros (ambito, coleccion, id, datos) VALUES (?, ?, ?, ?)
+    ON CONFLICT DO UPDATE SET datos = excluded.datos`).run(ambito, coleccion, registro.id, JSON.stringify(registro))
+
+const borrar = (ambito, coleccion, id) =>
+  bd().prepare('DELETE FROM registros WHERE ambito = ? AND coleccion = ? AND id = ?').run(ambito, coleccion, id)
+
+function buscar(ambito, coleccion, id) {
+  const fila = bd().prepare('SELECT datos FROM registros WHERE ambito = ? AND coleccion = ? AND id = ?')
+    .get(ambito, coleccion, id)
+  if (!fila) throw new ErrorApi(404, 'Registro no encontrado')
+  return JSON.parse(fila.datos)
 }
 
+export const listar = (ambito, coleccion) => esperarTurno(() => leer(ambito, coleccion))
+export const obtener = (ambito, coleccion, id) => esperarTurno(() => buscar(ambito, coleccion, id))
+
 export function crear(ambito, coleccion, datos) {
-  return transformar(ambito, coleccion, (lista) => {
+  return transaccion(() => {
     const registro = { ...datos, id: randomUUID(), creadoEn: new Date().toISOString() }
     if (ambito !== 'global') registro.negocioId = ambito
-    lista.push(registro)
+    guardar(ambito, coleccion, registro)
     return registro
   })
 }
 
 export function editar(ambito, coleccion, id, cambios) {
-  return transformar(ambito, coleccion, (lista) => {
-    const registro = lista.find((r) => r.id === id)
-    if (!registro) throw new ErrorApi(404, 'Registro no encontrado')
+  return transaccion(() => {
     const { id: _id, negocioId: _negocio, creadoEn: _creado, ...permitidos } = cambios
-    return Object.assign(registro, permitidos, { actualizadoEn: new Date().toISOString() })
+    const registro = { ...buscar(ambito, coleccion, id), ...permitidos, actualizadoEn: new Date().toISOString() }
+    guardar(ambito, coleccion, registro)
+    return registro
   })
 }
 
 export function eliminar(ambito, coleccion, id) {
-  return transformar(ambito, coleccion, (lista) => {
-    const i = lista.findIndex((r) => r.id === id)
-    if (i < 0) throw new ErrorApi(404, 'Registro no encontrado')
-    lista.splice(i, 1)
+  return transaccion(() => {
+    buscar(ambito, coleccion, id)
+    borrar(ambito, coleccion, id)
   })
 }
+
+// Entrega la lista para modificarla y guarda solo lo que cambió.
+export function transformar(ambito, coleccion, cambio) {
+  return transaccion(async () => {
+    const lista = leer(ambito, coleccion)
+    const antes = new Map(lista.map((r) => [r.id, JSON.stringify(r)]))
+    const resultado = await cambio(lista)
+    for (const r of lista) if (antes.get(r.id) !== JSON.stringify(r)) guardar(ambito, coleccion, r)
+    const quedan = new Set(lista.map((r) => r.id))
+    for (const id of antes.keys()) if (!quedan.has(id)) borrar(ambito, coleccion, id)
+    return resultado
+  })
+}
+
+export const vaciar = () => transaccion(() => bd().exec('DELETE FROM registros'))
