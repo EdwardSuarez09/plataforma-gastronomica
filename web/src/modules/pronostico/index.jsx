@@ -1,6 +1,17 @@
 import { useState } from 'react'
+import { Link } from 'react-router-dom'
 import { Aviso, Encabezado, Seleccion, porcentaje } from '../../components/ui.jsx'
 import { useDatos } from '../../services/useDatos.js'
+
+const sumar = (valores) => valores.reduce((a, b) => a + b, 0)
+
+// El error, dicho en palabras. Los cortes son orientativos.
+export function confianza(error) {
+  if (error === null || error === undefined) return null
+  if (error <= 0.15) return ['ok', 'Acierta bien']
+  if (error <= 0.3) return ['atento', 'Úsalo como guía']
+  return ['mal', 'Todavía falla mucho']
+}
 
 function Barras({ dias, valores }) {
   const mayor = Math.max(1, ...valores)
@@ -28,20 +39,32 @@ function Pronostico() {
     return (
       <>
         {titulo}
-        <p className="vacio">
-          Se necesitan {p.diasMinimos} días con ventas para pronosticar y llevas {p.diasConDatos}. Sigue registrando ventas.
-        </p>
+        <div className="vacio-caja">
+          <strong>Todavía estamos aprendiendo de tus ventas</strong>
+          <p>
+            Se necesitan {p.diasMinimos} días con ventas para pronosticar y llevas {p.diasConDatos}. Sigue registrando ventas.
+          </p>
+          <progress value={p.diasConDatos} max={p.diasMinimos} aria-label="Días con ventas" />
+          <Link to="/ventas">Registrar una venta</Link>
+        </div>
       </>
     )
   }
   const producto = p.productos.find((x) => x.productoId === elegido) ?? p.productos[0]
+  const nivel = confianza(p.error)
   return (
     <>
       {titulo}
-      <p className="cifra">
-        Calculado con <strong>{p.diasConDatos}</strong> días de ventas
-        {p.error !== null && <> · Error en la última semana: <strong>{porcentaje(p.error)}</strong></>}
-      </p>
+      <div className="resumen">
+        <article className="dato"><span>Unidades esperadas</span><strong>{sumar(p.productos.flatMap((x) => x.valores))}</strong><small>en {p.dias.length} {p.dias.length === 1 ? 'día' : 'días'}, entre todos</small></article>
+        {nivel && (
+          <article className={`dato ${nivel[0]}`}>
+            <span>Qué tan seguro es</span><strong>{nivel[1]}</strong>
+            <small>Se equivocó <b>{porcentaje(p.error)}</b> en la última semana</small>
+          </article>
+        )}
+        <article className="dato"><span>Historia usada</span><strong>{p.diasConDatos} días</strong><small>con ventas registradas</small></article>
+      </div>
       <section className="tarjeta">
         <Seleccion
           etiqueta="Producto" opciones={p.productos.map((x) => [x.productoId, x.nombre])}
@@ -49,20 +72,37 @@ function Pronostico() {
         />
         {producto && <Barras dias={p.dias} valores={producto.valores} />}
       </section>
+      <h2>Todos los productos</h2>
       <div className="tabla">
         <table>
-          <thead><tr><th>Producto</th>{p.dias.map((d) => <th key={d.fecha}>{d.nombre}<br /><small>{d.fecha.slice(5)}</small></th>)}</tr></thead>
+          <thead>
+            <tr>
+              <th>Producto</th>{p.dias.map((d) => <th key={d.fecha} className="num">{d.nombre}<br /><small>{d.fecha.slice(5)}</small></th>)}
+              <th className="num">Semana</th>
+            </tr>
+          </thead>
           <tbody>
             {p.productos.map((x) => (
-              <tr key={x.productoId}><td>{x.nombre}</td>{x.valores.map((v, i) => <td key={p.dias[i].fecha}>{v}</td>)}</tr>
+              <tr key={x.productoId}>
+                <td><strong>{x.nombre}</strong></td>{x.valores.map((v, i) => <td key={p.dias[i].fecha} className="num">{v}</td>)}
+                <td className="num"><strong>{sumar(x.valores)}</strong></td>
+              </tr>
             ))}
           </tbody>
         </table>
       </div>
+      <p className="explica" style={{ marginTop: '0.75rem' }}>
+        Es un promedio de las últimas semanas, por día y con más peso en lo reciente. No conoce festivos ni eventos. <Link to="/produccion">Usarlo en el plan de producción</Link>
+      </p>
     </>
   )
 }
 
 export default {
   ruta: '/pronostico', titulo: 'Pronóstico', resumen: 'Demanda de los próximos 7 días', orden: 31, menu: true, Componente: Pronostico,
+  guia: {
+    para: 'Estima cuánto venderás cada día de la próxima semana, para comprar y preparar lo justo.',
+    pasos: ['Mira qué tan seguro es el pronóstico.', 'Elige un producto para ver sus días fuertes.', 'Lleva estos números al Plan de producción.'],
+    conecta: 'Aprende de las ventas registradas. Mientras más ventas, mejor acierta.',
+  },
 }

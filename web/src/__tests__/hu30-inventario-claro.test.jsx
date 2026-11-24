@@ -71,6 +71,21 @@ describe('HU-30 Inventario claro (funcionales)', () => {
     expect(screen.getByText('Valor de lo que tienes').parentElement.textContent).toMatch(/170\.370/)
   })
 
+  test('CA-8: el resumen también muestra ceros cuando no hay insumos', async () => {
+    listar.mockResolvedValue([])
+    abrir(insumos.Componente)
+    expect((await screen.findByText('Insumos registrados')).parentElement.textContent).toMatch(/0$/)
+    expect(screen.getByText('Por reponer').parentElement.textContent).toMatch(/0/)
+    expect(screen.getByText('Valor de lo que tienes').parentElement.textContent).toMatch(/0/)
+  })
+
+  test('CA-1: inventario combina estado y barra en cada fila', async () => {
+    const { container } = abrir(inventario.Componente)
+    expect(await screen.findByText('Bajo mínimo')).toBeTruthy()
+    expect(screen.getByText('Suficiente')).toBeTruthy()
+    expect(container.querySelectorAll('.inventario-medidor > i')).toHaveLength(2)
+  })
+
   test('CA-3: puedo ver solo lo que debo comprar', async () => {
     abrir(inventario.Componente)
     await userEvent.click(await screen.findByLabelText('Ver solo lo que debo comprar'))
