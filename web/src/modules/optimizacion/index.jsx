@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
-import { Aviso, Campo, Encabezado, dinero } from '../../components/ui.jsx'
+import { Aviso, Campo, Dato, Encabezado, dinero, numero } from '../../components/ui.jsx'
 import { pedir } from '../../services/apiClient.js'
 
 function Plan({ productos, plan }) {
@@ -8,19 +8,19 @@ function Plan({ productos, plan }) {
     <div className="tabla">
       <table>
         <thead>
-          <tr><th>Producto</th>{plan.dias.map((d) => <th key={d.fecha}>{d.nombre}<br /><small>{d.fecha.slice(5)}</small></th>)}</tr>
+          <tr><th>Producto</th>{plan.dias.map((d) => <th key={d.fecha} className="num">{d.nombre}<br /><small>{d.fecha.slice(5)}</small></th>)}</tr>
         </thead>
         <tbody>
           {productos.map((p) => (
             <tr key={p.productoId}>
-              <td>{p.nombre}</td>
-              {plan.dias.map((d) => <td key={d.fecha}>{d.factible ? d.cantidades[p.productoId] : '—'}</td>)}
+              <td><strong>{p.nombre}</strong></td>
+              {plan.dias.map((d) => <td key={d.fecha} className="num">{d.factible ? d.cantidades[p.productoId] : '—'}</td>)}
             </tr>
           ))}
         </tbody>
         <tfoot>
-          <tr><th>Costo</th>{plan.dias.map((d) => <td key={d.fecha}>{d.factible ? dinero(d.costo) : '—'}</td>)}</tr>
-          <tr><th>Ganancia</th>{plan.dias.map((d) => <td key={d.fecha}>{d.factible ? dinero(d.ganancia) : '—'}</td>)}</tr>
+          <tr><th>Costo</th>{plan.dias.map((d) => <td key={d.fecha} className="num">{d.factible ? dinero(d.costo) : '—'}</td>)}</tr>
+          <tr><th>Ganancia</th>{plan.dias.map((d) => <td key={d.fecha} className="num">{d.factible ? dinero(d.ganancia) : '—'}</td>)}</tr>
         </tfoot>
       </table>
     </div>
@@ -35,12 +35,12 @@ function ListaCompras({ compras }) {
       <p className="cifra">Necesitas comprar <strong>{dinero(total)}</strong> en insumos.</p>
       <div className="tabla">
         <table>
-          <thead><tr><th>Insumo</th><th>Necesario</th><th>Hay</th><th>Comprar</th><th>Costo</th><th /></tr></thead>
+          <thead><tr><th>Insumo</th><th className="num">Necesario</th><th className="num">Hay</th><th className="num">Comprar</th><th className="num">Costo</th><th><span hidden>Acciones</span></th></tr></thead>
           <tbody>
             {compras.map((c) => (
               <tr key={c.insumoId}>
-                <td>{c.nombre}</td><td>{c.necesario} {c.unidad}</td><td>{c.stock}</td>
-                <td><strong>{c.comprar} {c.unidad}</strong></td><td>{dinero(c.costo)}</td>
+                <td>{c.nombre}</td><td className="num">{numero(c.necesario)} {c.unidad}</td><td className="num">{numero(c.stock)}</td>
+                <td className="num"><strong>{numero(c.comprar)} {c.unidad}</strong></td><td className="num">{dinero(c.costo)}</td>
                 <td><Link to={`/compras?insumo=${c.insumoId}&cantidad=${c.comprar}`} aria-label={`Comprar ${c.nombre}`}>Comprar</Link></td>
               </tr>
             ))}
@@ -61,9 +61,9 @@ function Optimizacion() {
       .catch((err) => setError(err.message))
   }, [])
 
-  const campo = (nombre, etiqueta) => (
+  const campo = (nombre, etiqueta, ayuda) => (
     <Campo
-      etiqueta={etiqueta} type="number" value={form[nombre]}
+      etiqueta={etiqueta} ayuda={ayuda} type="number" value={form[nombre]}
       onChange={(e) => setForm({ ...form, [nombre]: e.target.value })}
     />
   )
@@ -87,17 +87,22 @@ function Optimizacion() {
   return (
     <>
       <Encabezado titulo="Plan de producción">
-        Programación lineal: cuánto producir cada día para ganar más con tu presupuesto.
+        Cuánto producir cada día para ganar más con tu presupuesto. Se calcula con programación lineal a partir del pronóstico.
       </Encabezado>
       <form className="tarjeta formulario" onSubmit={calcular} noValidate>
-        {campo('presupuesto', 'Presupuesto diario (COP)')}
-        {campo('factorMin', 'Mínimo a producir (% del pronóstico)')}
-        {campo('factorMax', 'Máximo a producir (% del pronóstico)')}
-        {campo('variacion', 'Variación de costos (%)')}
-        <label className="fila" style={{ justifyContent: 'start' }}>
-          <input type="checkbox" style={{ width: 'auto' }} checked={form.soloStock} onChange={(e) => setForm({ ...form, soloStock: e.target.checked })} />
+        {campo('presupuesto', 'Presupuesto diario (COP)', 'Lo que puedes gastar en insumos cada día.')}
+        <label className="casilla">
+          <input type="checkbox" checked={form.soloStock} onChange={(e) => setForm({ ...form, soloStock: e.target.checked })} />
           Producir solo con lo que tengo
         </label>
+        <details className="mas todo">
+          <summary>Opciones avanzadas</summary>
+          <div className="formulario" style={{ margin: 0 }}>
+            {campo('factorMin', 'Mínimo a producir (% del pronóstico)', '50 = al menos la mitad de lo que se espera vender.')}
+            {campo('factorMax', 'Máximo a producir (% del pronóstico)', '120 = hasta un 20 % más de lo esperado.')}
+            {campo('variacion', 'Variación de costos (%)', 'Para comparar qué pasa si los insumos suben o bajan.')}
+          </div>
+        </details>
         <button>Calcular plan</button>
       </form>
       <Aviso>{error}</Aviso>
@@ -107,21 +112,21 @@ function Optimizacion() {
       {resultado && (
         <>
           {resultado.excluidos?.length > 0 && <Aviso>{`Fuera del plan por no tener rendimiento: ${resultado.excluidos.join(', ')}`}</Aviso>}
-          <p className="cifra">
-            Ganancia semanal estimada: <strong>{dinero(resultado.plan.ganancia)}</strong> · Inversión: <strong>{dinero(resultado.plan.costo)}</strong>
-          </p>
+          <div className="resumen">
+            <Dato nombre="Ganancia semanal estimada" valor={dinero(resultado.plan.ganancia)} tono="ok" />
+            <Dato nombre="Inversión en insumos" valor={dinero(resultado.plan.costo)} />
+          </div>
+          <h2>Unidades por día</h2>
           <Plan productos={resultado.productos} plan={resultado.plan} />
           <h2>Qué comprar para cumplirlo</h2>
           <ListaCompras compras={resultado.compras ?? []} />
           <h2>Si cambian los costos</h2>
-          <div className="rejilla">
+          <div className="resumen">
             {resultado.escenarios.map((e) => (
-              <article key={e.nombre} className="tarjeta">
-                <strong>{e.nombre}</strong>
-                <span>{e.variacionCosto > 0 ? '+' : ''}{Math.round(e.variacionCosto * 100)} % en costos</span>
-                <b className="grande">{dinero(e.ganancia)}</b>
-                {!e.factible && <small className="alerta">Algún día no alcanza el presupuesto</small>}
-              </article>
+              <Dato key={e.nombre} nombre={e.nombre} valor={dinero(e.ganancia)}>
+                {e.variacionCosto > 0 ? '+' : ''}{Math.round(e.variacionCosto * 100)} % en costos
+                {!e.factible && <span className="alerta"><br />Algún día no alcanza el presupuesto</span>}
+              </Dato>
             ))}
           </div>
         </>
@@ -132,4 +137,9 @@ function Optimizacion() {
 
 export default {
   ruta: '/produccion', titulo: 'Plan de producción', resumen: 'Cuánto producir para ganar más', orden: 32, menu: true, Componente: Optimizacion,
+  guia: {
+    para: 'Te dice cuántas unidades preparar cada día para ganar lo máximo posible con el dinero que tienes.',
+    pasos: ['Escribe tu presupuesto diario, o usa el sugerido.', 'Marca "solo con lo que tengo" si hoy no vas a comprar.', 'Calcula y revisa las unidades por día.', 'Usa "Qué comprar" para ir directo a Compras.'],
+    conecta: 'Parte del Pronóstico, de los Costos y de lo que hay en Inventario.',
+  },
 }
