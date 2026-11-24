@@ -1,6 +1,9 @@
 // Reemplaza los datos: crea dos negocios de demostración con ventas SIMULADAS de las últimas 4 semanas.
 // Los insumos, masas y precios salen del proyecto Python de referencia.
 import bcrypt from 'bcryptjs'
+import { consumoDe } from './modules/consumo/calcular.js'
+import { crearVenta } from './modules/consumo/servicio.js'
+import { registrar } from './modules/inventario/libro.js'
 import * as repo from './modules/persistencia/repo.js'
 import { armarDetalle } from './modules/ventas/armar.js'
 import { diaSemana, hoy, sumarDias } from './util/fechas.js'
@@ -71,8 +74,8 @@ async function sembrar({ correo, negocio, insumos, masas, productos, extrasComun
   })
 
   const idInsumo = {}
-  for (const [nombre, [unidad, precio, stock]] of Object.entries(insumos)) {
-    idInsumo[nombre] = (await repo.crear(id, 'insumos', { nombre, unidad, precio, stock })).id
+  for (const [nombre, [unidad, precio]] of Object.entries(insumos)) {
+    idInsumo[nombre] = (await repo.crear(id, 'insumos', { nombre, unidad, precio, stock: 0, stockMinimo: 0 })).id
   }
   const lineas = (o) => Object.entries(o).map(([n, cantidad]) => ({ insumoId: idInsumo[n], cantidad }))
 
@@ -93,17 +96,50 @@ async function sembrar({ correo, negocio, insumos, masas, productos, extrasComun
     creados.push({ ...p, demanda })
   }
 
-  for (let d = 28; d >= 1; d--) {
-    const fecha = sumarDias(hoy(), -d)
-    const items = creados.map((p) => ({
+  // 1. Ventas simuladas de 28 días y lo que consume cada una.
+  const todasMasas = await repo.listar(id, 'masas')
+  const dias = Array.from({ length: 28 }, (_, i) => sumarDias(hoy(), i - 28)).map((fecha) => ({
+    fecha,
+    items: creados.map((p) => ({
       productoId: p.id,
       cantidad: Math.max(1, Math.round(p.demanda * FACTOR_DIA[diaSemana(fecha)] * (0.85 + azar() * 0.3))),
-    }))
-    await repo.crear(id, 'ventas', { ...armarDetalle(items, creados), fecha, origen: 'presencial', estado: 'registrada' })
+    })),
+  }))
+  const gasto = consumoDe(dias.flatMap((d) => d.items), creados, todasMasas)
+  const promedio = (insumoId) => (gasto[insumoId] ?? 0) / dias.length
+
+  // 2. Stock inicial para 10 días (dos insumos quedan justos, para ver las alertas) y compra semanal.
+  const ids = Object.entries(idInsumo)
+  const inicial = ids.map(([, insumoId], n) => ({
+    insumoId, tipo: 'inicial', cantidad: Math.ceil(promedio(insumoId) * (n % 5 === 4 ? 8 : 10)),
+  }))
+  await registrar(id, inicial, { fecha: sumarDias(hoy(), -29) })
+  for (const [nombre, insumoId] of ids) {
+    await repo.editar(id, 'insumos', insumoId, { stockMinimo: Math.ceil(promedio(insumoId) * 1.5), nombre })
+  }
+  for (const [n, { fecha, items }] of dias.entries()) {
+    if (n > 1 && n % 7 === 1) {
+      for (const [nombre, insumoId] of ids) {
+        const cantidad = Math.ceil(promedio(insumoId) * 7)
+        if (cantidad === 0) continue
+        const precio = insumos[nombre][1]
+        const compra = await repo.crear(id, 'compras', {
+          insumoId, fecha, cantidad, valorTotal: cantidad * precio, precioUnitario: precio, proveedor: 'Plaza de mercado', estado: 'confirmada',
+        })
+        await registrar(id, [{ insumoId, tipo: 'compra', cantidad }], { fecha, origen: { tipo: 'compra', id: compra.id } })
+      }
+    }
+    // 3. Cada tercer día, parte de la venta llega por la tienda.
+    const tienda = n % 3 === 0 ? items.map((x) => ({ ...x, cantidad: Math.floor(x.cantidad * 0.2) })).filter((x) => x.cantidad > 0) : []
+    const mostrador = items.map((x) => ({ ...x, cantidad: x.cantidad - (tienda.find((t) => t.productoId === x.productoId)?.cantidad ?? 0) }))
+    await crearVenta(id, { ...armarDetalle(mostrador, creados), fecha, metodoPago: 'efectivo', origen: 'presencial' }, usuario.id)
+    if (tienda.length) await crearVenta(id, { ...armarDetalle(tienda, creados), fecha, origen: 'pedido_digital' }, usuario.id)
   }
   console.log(`${negocio.nombre}: ${correo} / ${CLAVE_DEMO}`)
 }
 
 await repo.vaciar()
-await sembrar(FRITOS)
-await sembrar(JUGOS)
+await repo.transaccion(async () => {
+  await sembrar(FRITOS)
+  await sembrar(JUGOS)
+})

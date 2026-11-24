@@ -28,9 +28,9 @@ describe('HU-18 API: todo queda vinculado', () => {
   const vender = (cantidad) => api('post', '/ventas').send({ items: [{ productoId: producto.id, cantidad }] })
   const pedir = (cantidad) => request(app).post('/api/publico/fritos/pedidos')
     .send({ cliente: { nombre: 'Luis', telefono: '3001234567' }, items: [{ productoId: producto.id, cantidad }] })
-  const pasar = async (estado, motivo) => {
-    const { id } = (await api('get', '/pedidos')).body.at(-1)
-    return api('patch', `/pedidos/${id}/estado`).send({ estado, motivo })
+  const pasar = async (estado, motivo, id) => {
+    const pedidoId = id ?? (await api('get', '/pedidos')).body.at(-1).id
+    return api('patch', `/pedidos/${pedidoId}/estado`).send({ estado, motivo })
   }
 
   beforeAll(async () => {
@@ -65,20 +65,29 @@ describe('HU-18 API: todo queda vinculado', () => {
 
   test('CA-6: confirmar reserva, cancelar libera', async () => {
     await pedir(80)
-    await pasar('confirmado')
+    const grande = (await api('get', '/pedidos')).body.at(-1).id
+    await pedir(20)
+    const pequeno = (await api('get', '/pedidos')).body.at(-1).id
+    await pasar('confirmado', undefined, grande)
     expect((await pedir(20)).status).toBe(409)
     expect(await stock()).toBe(9)
-    await pasar('cancelado', 'El cliente no vino')
+    const venta = await vender(20)
+    expect(venta.body.faltantes).toEqual(['Harina'])
+    expect(await stock()).toBe(7)
+    expect((await pasar('confirmado', undefined, pequeno)).status).toBe(409)
+    await pasar('rechazado', 'No hay inventario', pequeno)
+    await pasar('cancelado', 'El cliente no vino', grande)
+    expect(await stock()).toBe(7)
     expect((await pedir(20)).status).toBe(201)
   })
 
   test('CA-7: entregar descuenta, y anular esa venta marca el pedido', async () => {
     for (const e of ['confirmado', 'en_preparacion', 'listo', 'entregado']) await pasar(e)
-    expect(await stock()).toBe(7)
+    expect(await stock()).toBe(5)
     const venta = (await api('get', '/ventas')).body.find((v) => v.pedidoId)
     await api('post', `/ventas/${venta.id}/anular`)
     expect((await api('get', '/pedidos')).body.at(-1).estado).toBe('anulado')
-    expect(await stock()).toBe(9)
+    expect(await stock()).toBe(7)
   })
 
   test('CA-8: en mostrador avisa si no alcanza, pero permite vender', async () => {
