@@ -35,7 +35,9 @@ export default function Tienda() {
             <span>{p.descripcion}</span>
             <div className="fila">
               <b>{dinero(p.precio)}</b>
-              <button className="secundario" onClick={() => sumar(p.id, 1)} aria-label={`Agregar ${p.nombre}`}>Agregar</button>
+              {p.agotado ? <em>Agotado por hoy</em> : (
+                <button className="secundario" onClick={() => sumar(p.id, 1)} aria-label={`Agregar ${p.nombre}`}>Agregar</button>
+              )}
             </div>
           </article>
         ))}

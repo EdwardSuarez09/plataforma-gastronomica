@@ -33,4 +33,14 @@ describe('HU-10 Tienda pública (funcionales)', () => {
     abrir('/tienda/nada')
     expect(await screen.findByText('Esta tienda no existe')).toBeTruthy()
   })
+
+  test('HU-18 CA-9: un producto agotado no se puede agregar al carrito', async () => {
+    pedir.mockResolvedValue({
+      negocio,
+      productos: [{ id: 'e', nombre: 'Empanada', precio: 2500, agotado: true }],
+    })
+    abrir('/tienda/fritos-ana')
+    expect(await screen.findByText('Agotado por hoy')).toBeTruthy()
+    expect(screen.queryByRole('button', { name: 'Agregar Empanada' })).toBeNull()
+  })
 })
