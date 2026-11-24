@@ -19,6 +19,8 @@ describe('HU-03 validaciones (unitarias)', () => {
     [{ precio: 0 }, /precio/],
     [{ precio: 'abc' }, /precio/],
     [{ stock: -1 }, /stock/],
+    [{ stockMinimo: -1 }, /mínimo/],
+    [{ stockMinimo: 'abc' }, /mínimo/],
   ])('CA-2: rechaza %o', (cambio, mensaje) =>
     expect(validarInsumo({ ...harina, ...cambio })).toMatch(mensaje))
 
