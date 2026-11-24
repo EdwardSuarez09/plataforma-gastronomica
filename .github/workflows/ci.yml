@@ -1,0 +1,25 @@
+name: CI
+
+on:
+  push:
+    branches: [main, develop, 'feature/**']
+  pull_request:
+    branches: [main, develop]
+
+jobs:
+  verificar:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - name: Instalar dependencias
+        run: npm ci
+      - name: Revisar estilo (ESLint)
+        run: npm run lint
+      - name: Ejecutar pruebas (servidor y web)
+        run: npm test
+      - name: Compilar la web
+        run: npm run build
