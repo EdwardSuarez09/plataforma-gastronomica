@@ -23,8 +23,8 @@ function Ventas() {
 
   const intentar = async (accion, exito) => {
     try {
-      await accion()
-      setMensaje(['ok', exito])
+      const { faltantes = [] } = (await accion()) ?? {}
+      setMensaje(faltantes.length ? ['error', `${exito}. Revisa el inventario de: ${faltantes.join(', ')}`] : ['ok', exito])
       await recargar()
       return true
     } catch (err) {

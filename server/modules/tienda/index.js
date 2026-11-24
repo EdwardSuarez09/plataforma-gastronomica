@@ -1,5 +1,7 @@
 import { Router } from 'express'
 import { exigir } from '../../middleware/errores.js'
+import { calcularDisponible, unidadesPosibles } from '../consumo/calcular.js'
+import { cargar } from '../consumo/servicio.js'
 import * as repo from '../persistencia/repo.js'
 
 const publico = ({ nombre, slug, tipo, ciudad, moneda, telefono, descripcion }) =>
@@ -19,9 +21,16 @@ router.get('/tiendas', async (_req, res) =>
 // Solo datos para el cliente: nunca costos, insumos ni ventas.
 router.get('/:slug/menu', async (req, res) => {
   const negocio = await negocioPorSlug(req.params.slug)
-  const productos = (await repo.listar(negocio.id, 'productos'))
-    .filter((p) => p.activo)
-    .map(({ id, nombre, precio, descripcion, categoria }) => ({ id, nombre, precio, descripcion, categoria }))
+  const datos = await cargar(negocio.id)
+  const disponible = calcularDisponible(datos)
+  const productos = datos.productos.filter((p) => p.activo).map((p) => ({
+    id: p.id,
+    nombre: p.nombre,
+    precio: p.precio,
+    descripcion: p.descripcion,
+    categoria: p.categoria,
+    agotado: unidadesPosibles(p, datos.masas, disponible) === 0,
+  }))
   res.json({ negocio: publico(negocio), productos })
 })
 
