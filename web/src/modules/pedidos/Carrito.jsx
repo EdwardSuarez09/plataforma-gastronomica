@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { Link } from 'react-router-dom'
 import { Aviso, Campo, dinero } from '../../components/ui.jsx'
 import { pedir } from '../../services/apiClient.js'
+import './pedidos.css'
 
 export default function Carrito({ slug, productos, carrito, sumar, vaciar }) {
   const [cliente, setCliente] = useState({ nombre: '', telefono: '' })
@@ -31,10 +32,11 @@ export default function Carrito({ slug, productos, carrito, sumar, vaciar }) {
 
   if (pedido && lineas.length === 0) {
     return (
-      <section className="tarjeta carrito" aria-label="Pedido">
+      <section className="tarjeta carrito listo" aria-label="Pedido" role="status">
         <h2>Pedido {pedido.codigo}</h2>
+        <p>¡Listo! El negocio ya lo recibió. Guarda este código para recogerlo.</p>
         <p>Estado: <strong>{pedido.estado.replace('_', ' ')}</strong> · Total: <strong>{dinero(pedido.total)}</strong></p>
-        <Link to={`/tienda/${slug}/pedido/${pedido.codigo}`}>Seguir mi pedido</Link>
+        <Link className="boton" to={`/tienda/${slug}/pedido/${pedido.codigo}`}>Seguir mi pedido</Link>
       </section>
     )
   }
@@ -46,19 +48,24 @@ export default function Carrito({ slug, productos, carrito, sumar, vaciar }) {
       <ul className="lista">
         {lineas.map((l) => (
           <li key={l.id}>
-            <span>
-              <button type="button" className="secundario" aria-label={`Quitar ${l.nombre}`} onClick={() => sumar(l.id, -1)}>−</button>
-              {' '}{l.cantidad} × {l.nombre}
-            </span>
+            <div>
+              <span>{l.nombre}</span>
+              <div className="cantidad-carrito">
+                <button type="button" className="secundario" aria-label={`Quitar ${l.nombre}`} onClick={() => sumar(l.id, -1)}>−</button>
+                <b>{l.cantidad}</b>
+                <button type="button" className="secundario" aria-label={`Sumar ${l.nombre}`} onClick={() => sumar(l.id, 1)}>+</button>
+              </div>
+            </div>
             <span>{dinero(l.cantidad * l.precio)}</span>
           </li>
         ))}
       </ul>
-      <p className="cifra">Total: <strong>{dinero(total)}</strong></p>
-      <Campo etiqueta="Tu nombre" value={cliente.nombre} onChange={(e) => setCliente({ ...cliente, nombre: e.target.value })} />
-      <Campo etiqueta="Teléfono" inputMode="tel" value={cliente.telefono} onChange={(e) => setCliente({ ...cliente, telefono: e.target.value })} />
-      <Campo etiqueta="Nota (opcional)" value={nota} onChange={(e) => setNota(e.target.value)} />
+      <p className="carrito-total">Total <strong>{dinero(total)}</strong></p>
+      <Campo etiqueta="Tu nombre" autoComplete="name" value={cliente.nombre} onChange={(e) => setCliente({ ...cliente, nombre: e.target.value })} />
+      <Campo etiqueta="Teléfono" inputMode="tel" autoComplete="tel" value={cliente.telefono} onChange={(e) => setCliente({ ...cliente, telefono: e.target.value })} />
+      <Campo etiqueta="Nota (opcional)" placeholder="Ej: sin picante" value={nota} onChange={(e) => setNota(e.target.value)} />
       <button disabled={enviando}>Hacer pedido</button>
+      <small>Pagas al recoger en el local.</small>
     </form>
   )
 }

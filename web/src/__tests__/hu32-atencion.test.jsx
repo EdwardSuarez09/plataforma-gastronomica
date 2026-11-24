@@ -35,6 +35,7 @@ describe('HU-32 reglas (unitarias)', () => {
     expect(compararPrecio(3000, 3000)[1]).toMatch(/Igual/)
     expect(compararPrecio(Infinity, 3000)).toBeNull()
     expect(compararPrecio(NaN, 3000)).toBeNull()
+    expect(compararPrecio(3000, Infinity)).toBeNull()
   })
 
   test('CA-8: ventas, pedidos y compras traen su guía', () => {
