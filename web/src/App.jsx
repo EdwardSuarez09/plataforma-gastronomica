@@ -1,10 +1,12 @@
 import { NavLink, Route, Routes, useLocation, useNavigate } from 'react-router-dom'
+import { NegocioProvider, useNegocio } from './context/NegocioContext.jsx'
 import RutaProtegida from './modules/acceso/RutaProtegida.jsx'
 import { modulos } from './services/modulos.js'
 import { cerrarSesion, leerSesion } from './services/sesion.js'
 
 function Navegacion() {
   const navegar = useNavigate()
+  const { negocio } = useNegocio()
   const sesion = leerSesion()
   const salir = () => {
     cerrarSesion()
@@ -12,7 +14,7 @@ function Navegacion() {
   }
   return (
     <aside className="lateral">
-      <div className="marca">Sazón<small>Plataforma gastronómica</small></div>
+      <div className="marca">Sazón<small>{negocio?.nombre ?? 'Plataforma gastronómica'}</small></div>
       <nav aria-label="Principal">
         {modulos.filter((m) => m.menu).map((m) => (
           <NavLink key={m.ruta} to={m.ruta} end={m.ruta === '/'}>{m.titulo}</NavLink>
@@ -44,9 +46,11 @@ function Pantalla({ modulo }) {
 export default function App() {
   useLocation() // vuelve a leer la sesión al cambiar de ruta
   return (
-    <Routes>
-      {modulos.map((m) => <Route key={m.ruta} path={m.ruta} element={<Pantalla modulo={m} />} />)}
-      <Route path="*" element={<main><h1>Página no encontrada</h1></main>} />
-    </Routes>
+    <NegocioProvider key={leerSesion()?.usuario?.negocioId ?? 'sin-negocio'}>
+      <Routes>
+        {modulos.map((m) => <Route key={m.ruta} path={m.ruta} element={<Pantalla modulo={m} />} />)}
+        <Route path="*" element={<main><h1>Página no encontrada</h1></main>} />
+      </Routes>
+    </NegocioProvider>
   )
 }
