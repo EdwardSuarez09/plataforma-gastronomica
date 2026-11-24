@@ -1,15 +1,11 @@
 export const TIPOS_MASA = ['tradicional', 'yuca', 'plátano', 'otro']
 
+// Regla común para los ingredientes de una masa y los extras de un producto.
 export function validarIngredientes(ingredientes, insumos) {
-  const vistos = []
-  for (const ingrediente of ingredientes) {
-    let existe = false
-    for (const insumo of insumos) if (insumo.id === ingrediente.insumoId) existe = true
-    if (!existe) return 'Hay un insumo que no existe'
-    if (vistos.includes(ingrediente.insumoId)) return 'No se puede repetir el mismo insumo'
-    if (!(ingrediente.cantidad > 0)) return 'La cantidad debe ser mayor que 0'
-    vistos.push(ingrediente.insumoId)
-  }
+  const ids = ingredientes.map((i) => i.insumoId)
+  if (ids.some((id) => !insumos.some((i) => i.id === id))) return 'Hay un insumo que no existe'
+  if (new Set(ids).size !== ids.length) return 'No se puede repetir el mismo insumo'
+  if (ingredientes.some((i) => !(i.cantidad > 0))) return 'La cantidad debe ser mayor que 0'
   return null
 }
 
@@ -21,19 +17,15 @@ export function validarMasa({ nombre, tipo, ingredientes = [] }, insumos) {
 }
 
 export function validarRendimiento(rendimiento, productos) {
-  for (const r of rendimiento) {
-    if (!productos.some((p) => p.id === r.productoId)) return 'Hay un producto que no existe'
-    if (!Number.isInteger(r.unidades) || r.unidades <= 0) return 'El rendimiento debe ser un entero mayor que 0'
+  if (rendimiento.some((r) => !productos.some((p) => p.id === r.productoId))) return 'Hay un producto que no existe'
+  if (rendimiento.some((r) => !Number.isInteger(r.unidades) || r.unidades <= 0)) {
+    return 'El rendimiento debe ser un entero mayor que 0'
   }
   return null
 }
 
-export function costoIngredientes(ingredientes = [], insumos) {
-  let total = 0
-  for (const ingrediente of ingredientes) {
-    for (const insumo of insumos) {
-      if (insumo.id === ingrediente.insumoId) total = total + ingrediente.cantidad * insumo.precio
-    }
-  }
-  return total
-}
+const precioDe = (insumos, id) => insumos.find((i) => i.id === id)?.precio ?? 0
+
+// Suma de cantidad × precio vigente. Sirve para masas y para los extras de un producto.
+export const costoIngredientes = (ingredientes = [], insumos) =>
+  ingredientes.reduce((total, i) => total + i.cantidad * precioDe(insumos, i.insumoId), 0)
