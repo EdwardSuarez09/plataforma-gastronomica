@@ -1,30 +1,23 @@
-export function filtrarVentas(ventas, filtro = {}) {
-  const resultado = []
-  for (const v of ventas) {
-    if (v.estado === 'anulada') continue
-    if (filtro.desde && v.fecha < filtro.desde) continue
-    if (filtro.hasta && v.fecha > filtro.hasta) continue
-    for (const item of v.items) {
-      if (filtro.productoId && item.productoId !== filtro.productoId) continue
-      resultado.push({
-        ...item,
-        id: `${v.id}-${item.productoId}`,
-        fecha: v.fecha,
-        origen: v.origen,
-        total: item.cantidad * item.precioUnitario,
-      })
-    }
-  }
-  resultado.sort((a, b) => b.fecha.localeCompare(a.fecha))
-  return resultado
+const aLineas = (venta) =>
+  venta.items.map((item) => ({
+    ...item,
+    id: `${venta.id}-${item.productoId}`,
+    fecha: venta.fecha,
+    origen: venta.origen,
+    total: item.cantidad * item.precioUnitario,
+  }))
+
+// Una línea por producto vendido, de la más reciente a la más antigua.
+export function filtrarVentas(ventas, { desde, hasta, productoId } = {}) {
+  return ventas
+    .filter((v) => v.estado !== 'anulada')
+    .filter((v) => (!desde || v.fecha >= desde) && (!hasta || v.fecha <= hasta))
+    .flatMap(aLineas)
+    .filter((l) => !productoId || l.productoId === productoId)
+    .sort((a, b) => b.fecha.localeCompare(a.fecha))
 }
 
-export function totales(lineas) {
-  let unidades = 0
-  let dinero = 0
-  for (const l of lineas) {
-    unidades = unidades + l.cantidad
-    dinero = dinero + l.total
-  }
-  return { unidades, dinero }
-}
+export const totales = (lineas) => ({
+  unidades: lineas.reduce((suma, l) => suma + l.cantidad, 0),
+  dinero: lineas.reduce((suma, l) => suma + l.total, 0),
+})
