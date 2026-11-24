@@ -1,0 +1,32 @@
+.inventario-nivel {
+  display: inline-flex;
+  margin-left: 0.3rem;
+  padding: 0.1rem 0.5rem;
+  border-radius: 999px;
+  background: #eee8df;
+  color: var(--suave);
+  font-size: 0.78rem;
+  font-weight: 600;
+}
+.inventario-nivel.mal { background: #fde8e8; color: var(--mal); }
+.inventario-nivel.atento { background: #fff3cd; color: #755400; }
+.inventario-nivel.ok { background: #e5f4ea; color: var(--ok); }
+
+.inventario-medidor {
+  display: block;
+  width: min(12rem, 100%);
+  height: 0.55rem;
+  margin-top: 0.4rem;
+  overflow: hidden;
+  border-radius: 999px;
+  background: var(--linea);
+}
+.inventario-medidor > i {
+  display: block;
+  height: 100%;
+  border-radius: inherit;
+  background: var(--marca);
+}
+.inventario-medidor > i.mal { background: var(--mal); }
+.inventario-medidor > i.atento { background: #b2780b; }
+.inventario-medidor > i.ok { background: var(--ok); }
