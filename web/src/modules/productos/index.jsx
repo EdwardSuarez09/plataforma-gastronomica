@@ -1,11 +1,12 @@
 import { useState } from 'react'
 import { Link } from 'react-router-dom'
-import { Aviso, Campo, Encabezado, Seleccion, dinero } from '../../components/ui.jsx'
+import { Aviso, Campo, Encabezado, Seleccion, dinero, porcentaje } from '../../components/ui.jsx'
 import { crear, editar } from '../../services/apiClient.js'
 import { useDatos } from '../../services/useDatos.js'
 import Ingredientes, { aNumeros } from '../masas/Ingredientes.jsx'
+import { estimar } from './estimar.js'
 
-const VACIO = { nombre: '', precio: '', masaId: '', descripcion: '', extras: [] }
+const VACIO = { nombre: '', precio: '', masaId: '', descripcion: '', categoria: '', unidadesPorLote: '', extras: [] }
 
 function Productos() {
   const { datos, error, recargar } = useDatos('productos', 'masas', 'insumos')
@@ -25,42 +26,60 @@ function Productos() {
   }
   const guardar = (e) => {
     e.preventDefault()
-    const { nombre, masaId, descripcion } = form
-    const producto = { nombre, masaId, descripcion, precio: Number(form.precio), extras: aNumeros(form.extras) }
+    const { nombre, masaId, descripcion, categoria } = form
+    const producto = {
+      nombre, masaId, descripcion, categoria, precio: Number(form.precio), extras: aNumeros(form.extras),
+      ...(form.unidadesPorLote && { unidadesPorLote: Number(form.unidadesPorLote) }),
+    }
     intentar(() => (form.id ? editar('productos', form.id, producto) : crear('productos', producto)))
   }
 
   if (!datos) return <Aviso>{error}</Aviso>
   if (datos.masas.length === 0) return <p className="vacio">Primero crea una masa. <Link to="/masas">Ir a masas</Link></p>
+
+  const rinde = (p) => datos.masas.find((m) => m.id === p.masaId)?.rendimiento?.find((r) => r.productoId === p.id)?.unidades ?? ''
+  const abrir = (p) => setForm({ ...VACIO, ...p, unidadesPorLote: rinde(p) })
+  const costo = estimar(form, datos.masas, datos.insumos)
   return (
     <>
       <Encabezado titulo="Productos">Lo que vendes: una masa más sus extras.</Encabezado>
       <Aviso>{fallo}</Aviso>
       <form className="tarjeta formulario" onSubmit={guardar} noValidate>
         <Campo etiqueta="Nombre" value={form.nombre} onChange={cambiar('nombre')} />
+        <Campo etiqueta="Categoría" placeholder="Ej: Empanadas" value={form.categoria} onChange={cambiar('categoria')} />
         <Campo etiqueta="Precio de venta" type="number" value={form.precio} onChange={cambiar('precio')} />
         <Seleccion
           etiqueta="Masa" vacia="Elige…" opciones={datos.masas.map((m) => [m.id, m.nombre])}
           value={form.masaId} onChange={cambiar('masaId')}
         />
+        <Campo etiqueta="Unidades por lote de masa" type="number" value={form.unidadesPorLote} onChange={cambiar('unidadesPorLote')} />
         <Campo etiqueta="Descripción (opcional)" value={form.descripcion} onChange={cambiar('descripcion')} />
         <Ingredientes
           titulo="Insumos extra por unidad" insumos={datos.insumos}
           valor={form.extras} onChange={(extras) => setForm({ ...form, extras })}
         />
+        {costo && (
+          <p className="cifra">
+            Costo estimado: <strong>{dinero(costo.costo)}</strong>
+            {costo.margen !== null && <> · Margen: <strong className={costo.margen < 0 ? 'alerta' : ''}>{porcentaje(costo.margen)}</strong></>}
+            {' '}· Precio para ganar 50 %: <strong>{dinero(costo.sugerido)}</strong>
+          </p>
+        )}
         <button>{form.id ? 'Guardar cambios' : 'Crear producto'}</button>
+        {form.id && <button type="button" className="secundario" onClick={() => setForm(VACIO)}>Cancelar</button>}
       </form>
       <div className="tabla">
         <table>
-          <thead><tr><th>Producto</th><th>Precio</th><th>Masa</th><th>Estado</th><th /></tr></thead>
+          <thead><tr><th>Producto</th><th>Categoría</th><th>Precio</th><th>Masa</th><th>Por lote</th><th>Estado</th><th /></tr></thead>
           <tbody>
             {datos.productos.map((p) => (
               <tr key={p.id}>
-                <td>{p.nombre}</td><td>{dinero(p.precio)}</td>
+                <td>{p.nombre}</td><td>{p.categoria ?? 'General'}</td><td>{dinero(p.precio)}</td>
                 <td>{datos.masas.find((m) => m.id === p.masaId)?.nombre}</td>
+                <td>{rinde(p) || <span className="alerta">Falta</span>}</td>
                 <td>{p.activo ? 'Activo' : 'Inactivo'}</td>
                 <td className="acciones">
-                  <button className="secundario" onClick={() => setForm(p)}>Editar</button>
+                  <button className="secundario" onClick={() => abrir(p)}>Editar</button>
                   <button className="secundario" onClick={() => intentar(() => editar('productos', p.id, { activo: !p.activo }))}>
                     {p.activo ? 'Desactivar' : 'Activar'}
                   </button>
