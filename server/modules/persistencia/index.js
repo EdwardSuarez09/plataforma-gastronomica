@@ -4,13 +4,14 @@ import { exigir } from '../../middleware/errores.js'
 import * as repo from './repo.js'
 
 const COLECCIONES = ['insumos', 'masas', 'productos', 'compras', 'ventas', 'pedidos', 'movimientos']
-// Estas colecciones tienen reglas propias: la API genérica solo los lee.
+// Estas colecciones tienen reglas propias: la API genérica solo las lee.
 const SOLO_LECTURA = ['compras', 'ventas', 'pedidos', 'movimientos']
 
 const router = Router()
 
 router.get('/respaldo', requiereNegocio, async (req, res) => {
-  const copia = {}
+  const negocio = (await repo.listar('global', 'negocios')).find((n) => n.id === req.negocioId) ?? null
+  const copia = { generadoEn: new Date().toISOString(), negocio }
   for (const c of COLECCIONES) copia[c] = await repo.listar(req.negocioId, c)
   res.json(copia)
 })
