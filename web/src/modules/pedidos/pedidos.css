@@ -1,0 +1,10 @@
+.pasos { list-style: none; padding: 0; display: grid; gap: 0.5rem; }
+.pasos li { padding: 0.6rem 0.9rem; border-left: 4px solid var(--linea); color: var(--suave); }
+.pasos li.hecho { border-color: var(--ok); color: var(--tinta); }
+.pasos li[aria-current] { border-color: var(--marca); background: var(--marca-tenue); color: var(--tinta); font-weight: 700; }
+.columnas { display: grid; grid-template-columns: repeat(4, minmax(210px, 1fr)); gap: 1rem; overflow-x: auto; align-items: start; margin-top: 1rem; }
+.columnas h2 { margin: 0 0 0.5rem; font-size: 1rem; }
+.columnas .tarjeta { display: grid; gap: 0.4rem; margin-bottom: 0.75rem; padding: 1rem; }
+.barra-pedido { position: sticky; bottom: 1rem; display: block; background: var(--marca); color: #fff; text-align: center; padding: 0.9rem; border-radius: 12px; font-weight: 700; text-decoration: none; margin-top: 1rem; }
+.filtros-menu { display: flex; flex-wrap: wrap; gap: 0.5rem; align-items: end; margin: 1rem 0; }
+.filtros-menu .campo { flex: 1 1 220px; }
