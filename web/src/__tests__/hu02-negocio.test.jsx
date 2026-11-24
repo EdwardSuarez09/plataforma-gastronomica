@@ -7,6 +7,7 @@ import { pedir } from '../services/apiClient.js'
 import { guardarSesion, leerSesion } from '../services/sesion.js'
 
 vi.mock('../services/apiClient.js', () => ({ pedir: vi.fn(), listar: vi.fn(async () => []) }))
+vi.mock('../services/eventos.js', () => ({ alCambiar: () => () => {} }))
 
 const negocio = { id: 'n1', nombre: 'Fritos Ana', slug: 'fritos-ana', tipo: 'Fritos', ciudad: 'Sincelejo', moneda: 'COP' }
 const abrir = (ruta) => render(<MemoryRouter initialEntries={[ruta]}><App /></MemoryRouter>)

@@ -1,8 +1,9 @@
 import { useCallback, useEffect, useState } from 'react'
 import { listar } from './apiClient.js'
+import { alCambiar } from './eventos.js'
 
 // const { datos, error, recargar } = useDatos('insumos', 'masas')
-// datos.insumos y datos.masas; datos es null mientras carga.
+// datos es null mientras carga. Se recarga cuando el servidor avisa de un cambio.
 export function useDatos(...colecciones) {
   const clave = colecciones.join(',')
   const [datos, setDatos] = useState(null)
@@ -21,6 +22,15 @@ export function useDatos(...colecciones) {
 
   useEffect(() => {
     recargar()
+    let espera
+    const dejar = alCambiar(() => {
+      clearTimeout(espera)
+      espera = setTimeout(recargar, 250)
+    })
+    return () => {
+      clearTimeout(espera)
+      dejar()
+    }
   }, [recargar])
 
   return { datos, error, recargar }

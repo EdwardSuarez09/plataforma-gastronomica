@@ -1,5 +1,6 @@
 import { AsyncLocalStorage } from 'node:async_hooks'
 import { randomUUID } from 'node:crypto'
+import { EventEmitter } from 'node:events'
 import { copyFileSync, mkdirSync } from 'node:fs'
 import { join } from 'node:path'
 import { DatabaseSync } from 'node:sqlite'
@@ -16,6 +17,8 @@ const ESQUEMA = `
     datos     TEXT NOT NULL CHECK (json_valid(datos)),
     PRIMARY KEY (ambito, coleccion, id)
   );`
+
+export const cambios = new EventEmitter().setMaxListeners(0)
 
 const carpeta = () => process.env.DATA_DIR || join(import.meta.dirname, '../../data')
 export const archivo = () => join(carpeta(), 'sazon.db')
@@ -47,9 +50,24 @@ let fila = Promise.resolve()
 
 function esperarTurno(tarea) {
   if (enTurno.getStore()) return Promise.resolve().then(tarea)
-  const turno = fila.then(() => enTurno.run(true, tarea))
+  const turno = fila.then(() => enTurno.run(new Map(), tarea))
   fila = turno.catch(() => {})
   return turno
+}
+
+function anotar(ambito, coleccion) {
+  const tocados = enTurno.getStore()
+  tocados.set(ambito, (tocados.get(ambito) ?? new Set()).add(coleccion))
+}
+
+function avisar(cambio) {
+  for (const listener of cambios.rawListeners('cambio')) {
+    try {
+      listener.call(cambios, cambio)
+    } catch (error) {
+      console.error('No se pudo notificar un cambio guardado', error)
+    }
+  }
 }
 
 // Todo o nada: si la tarea falla, se deshacen todos sus cambios.
@@ -57,14 +75,22 @@ export function transaccion(tarea) {
   if (enTurno.getStore()) return Promise.resolve().then(tarea)
   return esperarTurno(async () => {
     bd().exec('BEGIN IMMEDIATE')
+    let resultado
+    let tocados
     try {
-      const resultado = await tarea()
+      resultado = await tarea()
       bd().exec('COMMIT')
-      return resultado
+      tocados = [...enTurno.getStore()]
     } catch (e) {
       bd().exec('ROLLBACK')
       throw e
     }
+    enTurno.exit(() => {
+      for (const [ambito, colecciones] of tocados) {
+        avisar({ ambito, colecciones: [...colecciones] })
+      }
+    })
+    return resultado
   })
 }
 
@@ -72,12 +98,16 @@ const leer = (ambito, coleccion) =>
   bd().prepare('SELECT datos FROM registros WHERE ambito = ? AND coleccion = ? ORDER BY rowid')
     .all(ambito, coleccion).map((f) => JSON.parse(f.datos))
 
-const guardar = (ambito, coleccion, registro) =>
-  bd().prepare(`INSERT INTO registros (ambito, coleccion, id, datos) VALUES (?, ?, ?, ?)
+const guardar = (ambito, coleccion, registro) => {
+  anotar(ambito, coleccion)
+  return bd().prepare(`INSERT INTO registros (ambito, coleccion, id, datos) VALUES (?, ?, ?, ?)
     ON CONFLICT DO UPDATE SET datos = excluded.datos`).run(ambito, coleccion, registro.id, JSON.stringify(registro))
+}
 
-const borrar = (ambito, coleccion, id) =>
-  bd().prepare('DELETE FROM registros WHERE ambito = ? AND coleccion = ? AND id = ?').run(ambito, coleccion, id)
+const borrar = (ambito, coleccion, id) => {
+  anotar(ambito, coleccion)
+  return bd().prepare('DELETE FROM registros WHERE ambito = ? AND coleccion = ? AND id = ?').run(ambito, coleccion, id)
+}
 
 function buscar(ambito, coleccion, id) {
   const fila = bd().prepare('SELECT datos FROM registros WHERE ambito = ? AND coleccion = ? AND id = ?')
