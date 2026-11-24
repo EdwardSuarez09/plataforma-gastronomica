@@ -47,4 +47,11 @@ describe('HU-02 Negocio (funcionales)', () => {
     await userEvent.click(screen.getByRole('button', { name: 'Guardar' }))
     expect((await screen.findByText('Cambios guardados'))).toBeTruthy()
   })
+
+  test('muestra errores al cargar los datos de un negocio existente', async () => {
+    guardarSesion({ token: 't', usuario: { nombre: 'Ana', negocioId: 'n1' } })
+    pedir.mockRejectedValue(new Error('No se pudo cargar el negocio'))
+    abrir('/negocio')
+    expect((await screen.findByRole('alert')).textContent).toBe('No se pudo cargar el negocio')
+  })
 })
