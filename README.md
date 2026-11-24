@@ -48,7 +48,7 @@ y CI en verde. Al subir una etiqueta `vX.Y`, GitHub Actions publica la versión.
 
 | Integrante | Historias |
 |---|---|
-| Angie | Base y CI, HU-01, HU-02, HU-07, HU-10, HU-19, HU-28 |
-| Edwar | HU-03, HU-09, HU-12, HU-14, HU-21, HU-24, TEC-03 |
-| Ireth | HU-04, HU-08, HU-13, HU-20, HU-22, TEC-01, TEC-04 |
+| Edwar | Base y CI, HU-01, HU-02, HU-07, HU-10, HU-19, HU-28 |
+| Ireth | HU-03, HU-09, HU-12, HU-14, HU-21, HU-24, TEC-03 |
+| Angie | HU-04, HU-08, HU-13, HU-20, HU-22, TEC-01, TEC-04 |
 | Ivan | HU-05, HU-06, HU-11, HU-18, HU-23, HU-27, TEC-02 |
