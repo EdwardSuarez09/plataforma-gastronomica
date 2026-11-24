@@ -1,0 +1,8 @@
+.mostrador { display: grid; grid-template-columns: minmax(0, 1fr) 320px; gap: 1rem; align-items: start; }
+.teclas { display: grid; grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap: 0.6rem; }
+.teclas button { background: var(--papel); color: var(--tinta); border: 1px solid var(--linea); padding: 1rem 0.8rem; text-align: left; display: grid; }
+.teclas button:hover { border-color: var(--marca); background: var(--marca-tenue); }
+.teclas small { color: var(--suave); font-weight: 400; }
+.cuenta { position: sticky; top: 1rem; display: grid; gap: 0.8rem; }
+.cuenta h2, .cuenta p { margin: 0; }
+@media (max-width: 760px) { .mostrador { grid-template-columns: 1fr; } }
