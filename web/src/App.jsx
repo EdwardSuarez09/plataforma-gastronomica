@@ -1,3 +1,4 @@
+import { useEffect } from 'react'
 import { NavLink, Route, Routes, useLocation, useNavigate } from 'react-router-dom'
 import { NegocioProvider, useNegocio } from './context/NegocioContext.jsx'
 import RutaProtegida from './modules/acceso/RutaProtegida.jsx'
@@ -56,6 +57,12 @@ function Pantalla({ modulo }) {
 
 export default function App() {
   useLocation() // vuelve a leer la sesión al cambiar de ruta
+  const navegar = useNavigate()
+  useEffect(() => {
+    const alVencer = () => navegar('/login', { replace: true, state: { vencida: true } })
+    window.addEventListener('sesion-vencida', alVencer)
+    return () => window.removeEventListener('sesion-vencida', alVencer)
+  }, [navegar])
   return (
     <NegocioProvider key={leerSesion()?.usuario?.negocioId ?? 'sin-negocio'}>
       <Routes>
