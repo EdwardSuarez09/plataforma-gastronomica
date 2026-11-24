@@ -20,6 +20,8 @@ describe('HU-11 reglas (unitarias)', () => {
   test('CA-2: el cliente invitado da nombre y teléfono', () => {
     expect(validarCliente({ nombre: 'Luis', telefono: '300 123 4567' })).toBeNull()
     expect(validarCliente({ nombre: '', telefono: '3001234567' })).toMatch(/nombre/)
+    expect(validarCliente({ nombre: 123, telefono: '3001234567' })).toMatch(/nombre/)
+    expect(validarCliente(null)).toMatch(/nombre/)
     expect(validarCliente({ nombre: 'Luis', telefono: 'abc' })).toMatch(/teléfono/)
   })
 })
