@@ -1,0 +1,20 @@
+.mostrador { display: grid; grid-template-columns: minmax(0, 1fr) clamp(20rem, 25vw, 28rem); gap: 1.25rem; align-items: start; }
+.buscar-tecla { max-width: 20rem; margin-bottom: 1rem; }
+.teclas { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 11rem), 1fr)); gap: 0.9rem; }
+.teclas button { background: var(--papel); color: var(--tinta); border: 1px solid var(--linea); padding: 1rem; text-align: left; display: grid; align-content: space-between; gap: 0.4rem; min-height: clamp(5.75rem, 8vw, 8.5rem); font-size: 1.08rem; position: relative; border-radius: 14px; line-height: 1.25; }
+.teclas button:hover { border-color: var(--marca); background: var(--papel); }
+.teclas button:active { background: var(--marca-tenue); }
+.teclas button.elegida { border-color: var(--marca); background: var(--marca-tenue); }
+.teclas small { color: var(--suave); font-weight: 400; font-size: 0.95rem; }
+.cuantos { position: absolute; right: 0.6rem; bottom: 0.6rem; min-width: 28px; height: 28px; padding: 0 0.4rem; border-radius: 99px; background: var(--marca); color: #fff; display: grid; place-items: center; font-size: 0.9rem; }
+.cuenta { position: sticky; top: 1rem; display: grid; gap: 0.9rem; }
+.cuenta h2, .cuenta p { margin: 0; }
+.cuenta .vacio { padding: 0.5rem 0; }
+.linea { display: flex; align-items: center; gap: 0.6rem; }
+.linea button { min-width: 38px; min-height: 38px; padding: 0; }
+.total-cuenta { display: flex; justify-content: space-between; align-items: baseline; border-top: 1px solid var(--linea); padding-top: 0.75rem; }
+.billetes { display: flex; flex-wrap: wrap; gap: 0.4rem; }
+.billetes button { padding: 0.3rem 0.7rem; min-height: 38px; font-size: 0.9rem; }
+.vueltas { background: #e3f3e9; color: #1b6a40; border-radius: 10px; padding: 0.6rem 0.9rem; font-size: 1.1rem; }
+.cobrar { font-size: 1.1rem; min-height: 52px; }
+@media (max-width: 1000px) { .mostrador { grid-template-columns: minmax(0, 1fr); } }

@@ -1,0 +1,5 @@
+.negocio-paneles { display: grid; grid-template-columns: minmax(0, 1fr) clamp(20rem, 27vw, 30rem); gap: 1.5rem; align-items: start; }
+.vista-previa h2 { margin: 0 0 0.75rem; }
+.vista-nombre { font-size: 1.3rem; }
+.compartir { display: flex; flex-wrap: wrap; gap: 0.75rem; align-items: center; justify-content: space-between; margin-top: 1rem; }
+@media (max-width: 1060px) { .negocio-paneles { grid-template-columns: minmax(0, 1fr); } .vista-previa { max-width: 22.5rem; } }

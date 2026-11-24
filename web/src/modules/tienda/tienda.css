@@ -1,0 +1,104 @@
+/* Fondo de la vitrina: verde profundo con trama y luces, para que las tarjetas resalten. */
+.publica:has(.vitrina) { background-color: #0f2a20; background-image: radial-gradient(rgb(255 255 255 / 0.07) 1px, transparent 1.5px), radial-gradient(circle at 88% 6%, rgb(184 65 14 / 0.5), transparent 34%), radial-gradient(circle at 4% 46%, rgb(36 110 80 / 0.75), transparent 42%), radial-gradient(circle at 80% 100%, rgb(134 101 29 / 0.55), transparent 40%); background-size: 28px 28px, auto, auto, auto; }
+.publica:has(.tienda) { background-color: #e3ebdf; background-image: radial-gradient(rgb(21 54 42 / 0.1) 1px, transparent 1.5px), radial-gradient(circle at 100% 0, rgb(244 191 74 / 0.38), transparent 34%), radial-gradient(circle at 0 100%, rgb(36 99 74 / 0.26), transparent 40%); background-size: 28px 28px, auto, auto; }
+.vitrina { color: #fff; }
+.vitrina .local:not(.invitacion) { color: #1b211d; }
+.vitrina .campo span { color: #fff; }
+.vitrina .campo select { color: #1b211d; }
+.vitrina .vacio-caja { margin-top: 1.25rem; }
+.vitrina-portada { color: #fff; padding: clamp(1rem, 3vw, 2.6rem) 0; display: grid; grid-template-columns: minmax(0, 1.1fr) minmax(0, 1fr); gap: 2rem; align-items: center; margin-bottom: 1.5rem; }
+.vitrina-portada h1 { font-size: clamp(2.2rem, 4.6vw, 4rem); }
+.vitrina-portada p { margin: 0.5rem 0 1.1rem; color: #cfe0d6; max-width: 46ch; font-size: 1.05rem; }
+.buscador { display: grid; gap: 0.35rem; max-width: 36rem; }
+.buscador span { font-weight: 600; font-size: 0.92rem; }
+.buscador input { border: 0; box-shadow: 0 10px 34px rgb(0 0 0 / 0.3); padding: 0.85rem 1.1rem; font-size: 1.05rem; border-radius: 14px; color: #1b211d; }
+.vitrina-dibujos { display: grid; grid-template-columns: repeat(4, 1fr); gap: 1rem; }
+.vitrina-dibujos svg { filter: drop-shadow(0 14px 18px rgb(0 0 0 / 0.35)); animation: vaiven 5s ease-in-out infinite alternate; }
+.vitrina-dibujos svg:nth-child(2n) { animation-delay: -2.2s; }
+.vitrina-dibujos svg:nth-child(3n) { animation-delay: -3.7s; }
+@keyframes vaiven { from { transform: translateY(-7%) rotate(-4deg); } to { transform: translateY(7%) rotate(4deg); } }
+@keyframes entrar-local { from { transform: translateY(22px); } }
+.vitrina-dibujos svg:nth-child(even) { translate: 0 22%; }
+.vitrina-dibujos svg:nth-child(odd) { translate: 0 -12%; }
+.tipos { display: flex; gap: 0.6rem; overflow-x: auto; padding: 4px; margin: 0 -4px; }
+.tipos button, .categorias button { background: #fff; color: #1b211d; border: 1px solid #dde3dc; border-radius: 99px; display: inline-flex; align-items: center; gap: 0.5rem; white-space: nowrap; flex: none; }
+.tipos button { padding: 0.35rem 1rem 0.35rem 0.5rem; }
+.tipos svg { width: 32px; height: 32px; }
+.tipos button:hover, .categorias button:hover { border-color: #15362a; background: #fff; }
+:is(.tipos, .categorias) button[aria-pressed='true'] { background: #f4bf4a; border-color: #f4bf4a; color: #2b1e00; }
+.vitrina-barra { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: end; gap: 1rem; margin-bottom: 0.75rem; }
+.cuenta-locales { margin: 0 0 0.75rem; color: #d4e5db; }
+.vitrina-filtros { display: flex; gap: 0.75rem; }
+.vitrina-filtros .campo { min-width: 10rem; }
+
+.locales { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 21rem), 1fr)); gap: clamp(1rem, 1.6vw, 1.75rem); }
+.local { background: #fff; border: 1px solid #dde3dc; border-radius: 18px; overflow: hidden; text-decoration: none; color: inherit; display: flex; flex-direction: column; box-shadow: 0 1px 2px rgb(21 54 42 / 0.06), 0 6px 20px rgb(21 54 42 / 0.06); transition: box-shadow 0.25s, border-color 0.25s, translate 0.25s; animation: entrar-local 0.5s both; }
+.local:hover { translate: 0 -5px; border-color: #f4bf4a; box-shadow: 0 22px 48px rgb(0 0 0 / 0.35); }
+.local:hover .portada-dibujo svg { scale: 1.08; }
+.local.esqueleto { min-height: 21.25rem; background: linear-gradient(100deg, #eaefe9 35%, #f6f8f5 50%, #eaefe9 65%); background-size: 220% 100%; animation: pasar 1.3s linear infinite; }
+@keyframes pasar { from { background-position: 120% 0; } to { background-position: -100% 0; } }
+.local-cuerpo { padding: 1.1rem 1.25rem 1.2rem; display: flex; flex-direction: column; gap: 0.5rem; flex: 1; }
+.local h2 { margin: 0; font-size: 1.3rem; }
+.local p { margin: 0; }
+.local-lugar { color: #58635c; font-size: 0.93rem; }
+.local-descripcion { display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+.etiquetas { display: flex; flex-wrap: wrap; gap: 0.35rem; }
+.etiquetas span { background: #eef2ec; color: #3d4a42; border-radius: 99px; padding: 0.12rem 0.65rem; font-size: 0.83rem; }
+.local-pie { margin-top: auto; padding-top: 0.8rem; border-top: 1px solid #e8ede7; display: flex; justify-content: space-between; align-items: center; gap: 1rem; font-size: 0.93rem; }
+.local-pie b { color: #b8410e; white-space: nowrap; }
+.local:hover .local-pie b { text-decoration: underline; text-underline-offset: 3px; }
+
+.portada-dibujo { position: relative; height: clamp(9.5rem, 13vw, 14rem); overflow: hidden; }
+.portada-dibujo svg { transition: scale 0.35s; position: absolute; filter: drop-shadow(0 6px 8px rgb(0 0 0 / 0.14)); }
+.portada-dibujo .pieza-0 { width: auto; height: 100%; left: 50%; top: 50%; translate: -50% -50%; }
+.portada-dibujo .pieza-1 { width: auto; height: 70%; left: -8px; bottom: -22px; rotate: -14deg; }
+.portada-dibujo .pieza-2 { width: auto; height: 70%; right: -6px; top: -14px; rotate: 16deg; }
+
+.local.invitacion { background: rgb(255 255 255 / 0.06); border: 2px dashed rgb(244 191 74 / 0.6); color: #fff; box-shadow: none; padding: 2rem; align-items: center; justify-content: center; text-align: center; gap: 0.8rem; }
+.local.invitacion:hover { background: rgb(255 255 255 / 0.1); border-color: #f4bf4a; box-shadow: none; translate: none; }
+.invitacion p { color: #d4e5db; max-width: 36ch; }
+.invitacion-mas { width: 4rem; height: 4rem; border-radius: 50%; display: grid; place-items: center; background: #f4bf4a; color: #2b1e00; font-size: 2.4rem; line-height: 1; }
+.invitacion .boton { background: #b8410e; color: #fff; padding: 0.7rem 1.3rem; border-radius: 10px; font-weight: 600; text-decoration: none; margin-top: 0.4rem; }
+
+.volver { display: inline-block; margin-bottom: 0.75rem; text-decoration: none; font-weight: 600; }
+.tienda-portada { background: #15362a; color: #fff; border-radius: 22px; overflow: hidden; display: grid; grid-template-columns: minmax(0, 1.5fr) minmax(0, 1fr); margin-bottom: 1.25rem; }
+.tienda-datos { padding: clamp(1.4rem, 3vw, 2.4rem); display: grid; gap: 0.6rem; align-content: center; }
+.tienda-datos p { margin: 0; }
+.tienda-datos h1 { font-size: clamp(1.8rem, 4vw, 2.6rem); }
+.tienda-datos .etiquetas span { background: #24523f; color: #fff; }
+.tienda-recoge { color: #cfe0d6; }
+.tienda-recoge a { color: #f4bf4a; font-weight: 600; white-space: nowrap; }
+.tienda-portada .portada-dibujo { height: 100%; min-height: 11.875rem; }
+.tienda-filtros { display: flex; flex-wrap: wrap; gap: 1rem; align-items: end; margin-bottom: 1.25rem; }
+.tienda-filtros .campo { flex: 1 1 15rem; max-width: 21.25rem; align-self: end; }
+.categorias { display: flex; gap: 0.5rem; overflow-x: auto; padding: 4px; flex: 2 1 20rem; }
+.tienda-cuerpo { display: grid; grid-template-columns: minmax(0, 1fr); gap: 1.5rem; align-items: start; }
+.platos { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 22rem), 1fr)); gap: 1rem; }
+.plato { background: #fff; border: 1px solid #dde3dc; border-radius: 16px; display: grid; grid-template-columns: 8rem minmax(0, 1fr); overflow: hidden; }
+.plato-dibujo { background: #fdf3dc; display: grid; place-items: center; }
+.plato-dibujo svg { width: 6rem; }
+.plato-cuerpo { padding: 0.9rem 1rem; display: flex; flex-direction: column; gap: 0.2rem; }
+.plato-cuerpo > strong { font-size: 1.08rem; line-height: 1.3; }
+.plato-cuerpo > span { color: #58635c; font-size: 0.92rem; }
+.plato-pie { margin-top: auto; padding-top: 0.6rem; display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 0.5rem; }
+.plato-pie > b { font-size: 1.12rem; }
+.plato.agotado .plato-dibujo { filter: grayscale(1); opacity: 0.6; }
+.contador { display: flex; align-items: center; gap: 0.35rem; }
+.contador button { min-width: 42px; padding: 0.4rem 0.85rem; }
+.contador output { min-width: 1.6rem; text-align: center; font-weight: 700; }
+.tienda .carrito { margin: 0; max-width: none; }
+#pedido { scroll-margin-top: 5rem; }
+.tienda .barra-pedido { z-index: 10; background: #b8410e; box-shadow: 0 8px 24px rgb(0 0 0 / 0.22); }
+@media (min-width: 1000px) {
+  .tienda-cuerpo:has(#pedido .carrito) { grid-template-columns: minmax(0, 1fr) clamp(20rem, 25vw, 28rem); }
+  #pedido { position: sticky; top: 5rem; }
+  .tienda .barra-pedido { display: none; }
+}
+@media (max-width: 700px) {
+  .vitrina-portada, .tienda-portada { grid-template-columns: minmax(0, 1fr); }
+  .vitrina-dibujos { display: none; }
+  .tienda-portada .portada-dibujo { min-height: 8.125rem; height: 8.125rem; }
+  .vitrina-filtros { width: 100%; }
+  .vitrina-filtros .campo { min-width: 0; }
+}
+@media (prefers-reduced-motion: reduce) { .vitrina-dibujos svg, .local { animation: none; } }
