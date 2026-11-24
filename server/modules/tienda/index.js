@@ -7,6 +7,17 @@ import * as repo from '../persistencia/repo.js'
 const publico = ({ nombre, slug, tipo, ciudad, moneda, telefono, descripcion }) =>
   ({ nombre, slug, tipo, ciudad, moneda, telefono, descripcion })
 
+// Lo que la vitrina cuenta de cada menú: cuánto hay, desde qué precio y de qué tipo.
+export function resumirMenu(productos) {
+  const activos = productos.filter((p) => p.activo)
+  return {
+    productos: activos.length,
+    desde: activos.length ? Math.min(...activos.map((p) => p.precio)) : null,
+    categorias: [...new Set(activos.map((p) => p.categoria).filter(Boolean))],
+    menu: activos.map((p) => p.nombre),
+  }
+}
+
 export async function negocioPorSlug(slug) {
   const negocio = (await repo.listar('global', 'negocios')).find((n) => n.slug === slug)
   exigir(negocio, 'Esta tienda no existe', 404)
@@ -15,8 +26,13 @@ export async function negocioPorSlug(slug) {
 
 const router = Router()
 
-router.get('/tiendas', async (_req, res) =>
-  res.json((await repo.listar('global', 'negocios')).map(publico)))
+router.get('/tiendas', async (_req, res) => {
+  const tiendas = []
+  for (const n of await repo.listar('global', 'negocios')) {
+    tiendas.push({ ...publico(n), ...resumirMenu(await repo.listar(n.id, 'productos')) })
+  }
+  res.json(tiendas)
+})
 
 // Solo datos para el cliente: nunca costos, insumos ni ventas.
 router.get('/:slug/menu', async (req, res) => {
