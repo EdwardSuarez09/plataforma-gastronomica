@@ -4,6 +4,14 @@ import RutaProtegida from './modules/acceso/RutaProtegida.jsx'
 import { modulos } from './services/modulos.js'
 import { cerrarSesion, leerSesion } from './services/sesion.js'
 
+// El orden de cada módulo decide su grupo en el menú.
+const GRUPOS = [['Día a día', 0], ['Cocina', 10], ['Dinero', 20], ['Decisiones', 30], ['Mi tienda', 80]]
+const menu = modulos.filter((m) => m.menu)
+const grupos = GRUPOS.map(([nombre, desde], i) => {
+  const hasta = GRUPOS[i + 1]?.[1] ?? Infinity
+  return { nombre, items: menu.filter((m) => m.orden >= desde && m.orden < hasta) }
+}).filter((g) => g.items.length > 0)
+
 function Navegacion() {
   const navegar = useNavigate()
   const { negocio } = useNegocio()
@@ -16,8 +24,11 @@ function Navegacion() {
     <aside className="lateral">
       <div className="marca">Sazón<small>{negocio?.nombre ?? 'Plataforma gastronómica'}</small></div>
       <nav aria-label="Principal">
-        {modulos.filter((m) => m.menu).map((m) => (
-          <NavLink key={m.ruta} to={m.ruta} end={m.ruta === '/'}>{m.titulo}</NavLink>
+        {grupos.map((g) => (
+          <div key={g.nombre} className="grupo-menu">
+            <small>{g.nombre}</small>
+            {g.items.map((m) => <NavLink key={m.ruta} to={m.ruta} end={m.ruta === '/'}>{m.titulo}</NavLink>)}
+          </div>
         ))}
       </nav>
       {sesion && (
