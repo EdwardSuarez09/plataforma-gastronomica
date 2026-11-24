@@ -17,46 +17,52 @@ const datos = {
   ventas: [{ id: 'v', fecha: hoy(), estado: 'registrada', origen: 'presencial', total: 2500, items: [{ nombre: 'Empanada', cantidad: 1 }] }],
 }
 const abrir = () => render(<MemoryRouter><modulo.Componente /></MemoryRouter>)
-const agregar = async (id, cantidad) => {
-  await userEvent.selectOptions(await screen.findByLabelText('Producto'), id)
-  if (cantidad) await userEvent.type(screen.getByLabelText('Cantidad'), cantidad)
-  await userEvent.click(screen.getByRole('button', { name: 'Agregar' }))
-}
+const tocar = async (nombre) => userEvent.click(await screen.findByRole('button', { name: nombre }))
 
-describe('HU-06 Ventas (funcionales)', () => {
+describe('HU-06 y HU-23 Venta rápida (funcionales)', () => {
   beforeEach(() => {
     vi.clearAllMocks()
     listar.mockImplementation(async (c) => datos[c])
+    crear.mockResolvedValue({})
   })
 
-  test('CA-5: los productos desactivados no aparecen', async () => {
+  test('HU-06 CA-5: los productos desactivados no aparecen', async () => {
     abrir()
-    await screen.findByLabelText('Producto')
+    await screen.findByRole('button', { name: /^Empanada/ })
     expect(screen.queryByText(/Viejo/)).toBeNull()
   })
 
-  test('CA-2: varios productos en una venta y total calculado', async () => {
+  test('HU-23 CA-1: tocar dos veces suma dos unidades y se ve el total', async () => {
     abrir()
-    await agregar('e', '2')
-    await agregar('p', '1')
+    await tocar(/^Empanada/)
+    await tocar(/^Empanada/)
+    await tocar(/^Papa/)
     expect(screen.getByText(/8\.500/)).toBeTruthy()
-    await userEvent.click(screen.getByRole('button', { name: 'Registrar venta' }))
+    await tocar('Cobrar')
     expect(crear).toHaveBeenCalledWith('ventas', {
-      fecha: hoy(), items: [{ productoId: 'e', cantidad: 2 }, { productoId: 'p', cantidad: 1 }],
+      fecha: hoy(), metodoPago: 'efectivo',
+      items: [{ productoId: 'e', cantidad: 2 }, { productoId: 'p', cantidad: 1 }],
     })
   })
 
-  test('CA-6: cantidad vacía muestra el error y no se agrega', async () => {
+  test('HU-23 CA-2: se puede quitar una unidad antes de cobrar', async () => {
     abrir()
-    await agregar('e')
-    expect(screen.getByRole('alert').textContent).toMatch(/entero mayor que 0/)
-    expect(screen.queryByRole('button', { name: 'Registrar venta' })).toBeNull()
+    await tocar(/^Empanada/)
+    await tocar('Quitar Empanada')
+    expect(screen.queryByRole('button', { name: 'Cobrar' })).toBeNull()
   })
 
-  test('CA-7: anular pide confirmación', async () => {
+  test('HU-23 CA-4: calcula las vueltas en efectivo', async () => {
+    abrir()
+    await tocar(/^Empanada/)
+    await userEvent.type(screen.getByLabelText('Paga con'), '10000')
+    expect(screen.getByText(/Vueltas/).textContent).toMatch(/7\.500/)
+  })
+
+  test('HU-06 CA-7: anular pide confirmación', async () => {
     vi.stubGlobal('confirm', vi.fn(() => true))
     abrir()
-    await userEvent.click(await screen.findByRole('button', { name: 'Anular' }))
+    await tocar('Anular')
     expect(window.confirm).toHaveBeenCalled()
     expect(pedir).toHaveBeenCalledWith('/ventas/v/anular', { metodo: 'POST' })
   })
