@@ -14,7 +14,10 @@ export async function pedir(ruta, { metodo = 'GET', datos } = {}) {
   if (res.status === 204) return null
   const cuerpo = await res.json().catch(() => ({}))
   if (!res.ok) {
-    if (res.status === 401 && token) cerrarSesion()
+    if (res.status === 401 && token) {
+      cerrarSesion()
+      window.dispatchEvent(new Event('sesion-vencida'))
+    }
     throw new Error(cuerpo.error ?? 'No se pudo conectar con el servidor')
   }
   return cuerpo
