@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { Link } from 'react-router-dom'
 import { Aviso, Campo, dinero } from '../../components/ui.jsx'
 import { pedir } from '../../services/apiClient.js'
 
@@ -28,14 +29,12 @@ export default function Carrito({ slug, productos, carrito, sumar, vaciar }) {
     }
   }
 
-  const consultar = async () => setPedido(await pedir(`/publico/${slug}/pedidos/${pedido.codigo}`))
-
   if (pedido && lineas.length === 0) {
     return (
       <section className="tarjeta carrito" aria-label="Pedido">
         <h2>Pedido {pedido.codigo}</h2>
         <p>Estado: <strong>{pedido.estado.replace('_', ' ')}</strong> · Total: <strong>{dinero(pedido.total)}</strong></p>
-        <button className="secundario" onClick={consultar}>Actualizar estado</button>
+        <Link to={`/tienda/${slug}/pedido/${pedido.codigo}`}>Seguir mi pedido</Link>
       </section>
     )
   }
